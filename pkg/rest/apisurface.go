@@ -52,13 +52,13 @@ func NewAPISurface(options user.Options) (*APISurface, error) {
 func (s *APISurface) GetCatalogHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
 	response, err := s.BusinessLogic.GetCatalog(w, r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -70,13 +70,13 @@ func (s *APISurface) GetCatalogHandler(w http.ResponseWriter, r *http.Request) {
 func (s *APISurface) ProvisionHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
 	request, err := unpackProvisionRequest(r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -84,7 +84,7 @@ func (s *APISurface) ProvisionHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := s.BusinessLogic.Provision(request, w, r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -123,13 +123,13 @@ func unpackProvisionRequest(r *http.Request) (*osb.ProvisionRequest, error) {
 func (s *APISurface) DeprovisionHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
 	request, err := unpackDeprovisionRequest(r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (s *APISurface) DeprovisionHandler(w http.ResponseWriter, r *http.Request) 
 
 	response, err := s.BusinessLogic.Deprovision(request, w, r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -171,7 +171,7 @@ func unpackDeprovisionRequest(r *http.Request) (*osb.DeprovisionRequest, error) 
 func (s *APISurface) LastOperationHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (s *APISurface) LastOperationHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		// TODO: This should return a 400 in this case as it is either
 		// malformed or missing mandatory data, as per the OSB spec.
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (s *APISurface) LastOperationHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		// TODO: This should return a 400 in this case as it is either
 		// malformed or missing mandatory data, as per the OSB spec.
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -223,13 +223,13 @@ func unpackLastOperationRequest(r *http.Request) (*osb.LastOperationRequest, err
 func (s *APISurface) BindHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
 	request, err := unpackBindRequest(r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -237,7 +237,7 @@ func (s *APISurface) BindHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := s.BusinessLogic.Bind(request, w, r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -263,13 +263,13 @@ func unpackBindRequest(r *http.Request) (*osb.BindRequest, error) {
 func (s *APISurface) UnbindHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
 	request, err := unpackUnbindRequest(r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -277,7 +277,7 @@ func (s *APISurface) UnbindHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := s.BusinessLogic.Unbind(request, w, r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -295,30 +295,18 @@ func unpackUnbindRequest(r *http.Request) (*osb.UnbindRequest, error) {
 	return osbRequest, nil
 }
 
-// writeError accepts any error and writes it to the given ResponseWriter.
-func writeError(w http.ResponseWriter, err error) {
-	// TODO: make a little better :)
-
-	if httpErr, ok := osb.IsHTTPError(err); ok {
-		writeResponse(w, httpErr.StatusCode, err)
-		return
-	}
-
-	writeErrorResponse(w, http.StatusInternalServerError, err)
-}
-
 // UpdateHandler is the mux handler that dispatches Update requests to the
 // broker's BusinessLogic.
 func (s *APISurface) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	version := getBrokerAPIVersionFromRequest(r)
 	if err := s.BusinessLogic.ValidateBrokerAPIVersion(version); err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusPreconditionFailed)
 		return
 	}
 
 	request, err := unpackUpdateRequest(r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -326,7 +314,7 @@ func (s *APISurface) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := s.BusinessLogic.Update(request, w, r)
 	if err != nil {
-		writeError(w, err)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
